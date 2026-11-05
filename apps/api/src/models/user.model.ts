@@ -28,6 +28,17 @@ function seed(): StoredUser[] {
 
 const users = loadCollection<StoredUser>("users", seed);
 
+// Keep the seeded admin account's email in step with ADMIN_EMAIL (the password is untouched).
+{
+  const admin = users.find((u) => u.id === "usr_admin_00");
+  const wanted = ENV.ADMIN_EMAIL.toLowerCase();
+  if (admin && admin.email.toLowerCase() !== wanted && !users.some((u) => u.email.toLowerCase() === wanted)) {
+    admin.email = ENV.ADMIN_EMAIL;
+    saveCollection();
+    console.log(`[auth] Admin email updated to ${ENV.ADMIN_EMAIL}`);
+  }
+}
+
 export const toPublicUser = ({ passwordHash: _p, ...user }: StoredUser): User => user;
 
 export class UserModel {

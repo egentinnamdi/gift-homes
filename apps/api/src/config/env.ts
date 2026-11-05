@@ -22,7 +22,7 @@ export const ENV = {
   JWT_SECRET: process.env.JWT_SECRET || DEV_JWT,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
   DATA_FILE: process.env.DATA_FILE || "data/db.json",
-  ADMIN_EMAIL: process.env.ADMIN_EMAIL || "admin@gifthomes.ng",
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || "giftedproperties2@gmail.com",
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD,
   SMTP_HOST: process.env.SMTP_HOST || "",
   SMTP_PORT: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,

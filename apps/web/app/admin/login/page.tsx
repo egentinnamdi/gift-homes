@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
             <span className="mb-1.5 block text-xs font-medium text-[#999999]">Email</span>
             <div className="relative">
               <Mail className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#666666]" />
-              <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputCls} pl-9`} placeholder="admin@gifthomes.ng" />
+              <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputCls} pl-9`} placeholder="giftedproperties2@gmail.com" />
             </div>
           </label>
           <label className="block">
