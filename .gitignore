@@ -1,5 +1,11 @@
 # dependencies
 /node_modules
+/apps/web/node_modules
+/apps/api/node_modules
+/packages/shared/node_modules
+/packages/shared/dist
+/apps/api/dist
+/apps/web/.next
 /.pnp
 .pnp.*
 .yarn/*
