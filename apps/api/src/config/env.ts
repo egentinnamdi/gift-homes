@@ -5,6 +5,13 @@ dotenv.config();
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProd = NODE_ENV === "production";
 
+const onVercel = Boolean(process.env.VERCEL);
+// Vercel's filesystem is read-only except /tmp (which is ephemeral). See README / deployment notes.
+const defaultDataFile = onVercel ? "/tmp/gifthomes-db.json" : "data/db.json";
+const publicSite =
+  process.env.CLIENT_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+
 const DEV_JWT = "dev-only-insecure-secret-change-me";
 const DEFAULT_ADMIN_PASSWORD = "Admin@12345";
 
@@ -13,15 +20,15 @@ export const ENV = {
   NODE_ENV,
   IS_PROD: isProd,
   /** One or more comma-separated origins, e.g. https://gifthomes.ng,https://www.gifthomes.ng */
-  CLIENT_URL: (process.env.CLIENT_URL || "http://localhost:3000").split(",")[0].trim(),
-  CLIENT_ORIGINS: (process.env.CLIENT_URL || "http://localhost:3000")
+  CLIENT_URL: publicSite.split(",")[0].trim(),
+  CLIENT_ORIGINS: publicSite
     .split(",")
     .map((s) => s.trim().replace(/\/$/, ""))
     .filter(Boolean),
   API_PREFIX: process.env.API_PREFIX || "/api/v1",
   JWT_SECRET: process.env.JWT_SECRET || DEV_JWT,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
-  DATA_FILE: process.env.DATA_FILE || "data/db.json",
+  DATA_FILE: process.env.DATA_FILE || defaultDataFile,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || "giftedproperties2@gmail.com",
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD,
   SMTP_HOST: process.env.SMTP_HOST || "",

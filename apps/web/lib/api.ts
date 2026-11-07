@@ -12,8 +12,11 @@ import type {
   UserRole,
 } from "@gift-homes/shared"
 
+// In production the API is served from the same domain (Vercel services routes /api/* to it).
+// Locally, `next dev` runs on :3000 and the API on :5000.
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production" ? "/api/v1" : "http://localhost:5000/api/v1")
 
 export const TOKEN_KEY = "gifthomes_token"
 
