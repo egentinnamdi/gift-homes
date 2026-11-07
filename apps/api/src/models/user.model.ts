@@ -1,61 +1,69 @@
 import bcrypt from "bcryptjs";
 import { User, RegisterDTO } from "@gift-homes/shared";
-import { loadCollection, saveCollection } from "../utils/store.js";
+import { collection } from "../utils/store.js";
 import { ENV } from "../config/env.js";
 
 export interface StoredUser extends User {
+  id: string;
   passwordHash: string;
 }
 
 const AVATAR =
   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80";
+const ADMIN_ID = "usr_admin_00";
 
-function seed(): StoredUser[] {
-  const now = new Date().toISOString();
-  return [
+const users = collection<StoredUser>("users", {
+  order: "asc",
+  seed: () => [
     {
-      id: "usr_admin_00",
+      id: ADMIN_ID,
       name: "GiftHomes Admin",
       email: ENV.ADMIN_EMAIL,
       role: "admin",
       location: "Enugu, Nigeria",
       avatar: AVATAR,
-      createdAt: now,
+      createdAt: new Date().toISOString(),
       passwordHash: bcrypt.hashSync(ENV.ADMIN_PASSWORD, 10),
     },
-  ];
-}
-
-const users = loadCollection<StoredUser>("users", seed);
-
-// Keep the seeded admin account's email in step with ADMIN_EMAIL (the password is untouched).
-{
-  const admin = users.find((u) => u.id === "usr_admin_00");
-  const wanted = ENV.ADMIN_EMAIL.toLowerCase();
-  if (admin && admin.email.toLowerCase() !== wanted && !users.some((u) => u.email.toLowerCase() === wanted)) {
-    admin.email = ENV.ADMIN_EMAIL;
-    saveCollection();
-    console.log(`[auth] Admin email updated to ${ENV.ADMIN_EMAIL}`);
-  }
-}
+  ],
+});
 
 export const toPublicUser = ({ passwordHash: _p, ...user }: StoredUser): User => user;
 
+// Keep the seeded admin account's email in step with ADMIN_EMAIL (the password is untouched).
+let adminSynced: Promise<void> | null = null;
+const syncAdmin = () =>
+  (adminSynced ??= (async () => {
+    const admin = await users.get(ADMIN_ID);
+    if (admin && admin.email.toLowerCase() !== ENV.ADMIN_EMAIL.toLowerCase()) {
+      if (!(await users.findBy("email", ENV.ADMIN_EMAIL))) {
+        await users.replace({ ...admin, email: ENV.ADMIN_EMAIL });
+        console.log(`[auth] Admin email updated to ${ENV.ADMIN_EMAIL}`);
+      }
+    }
+  })().catch((e) => {
+    adminSynced = null;
+    throw e;
+  }));
+
 export class UserModel {
-  static findAll(): User[] {
-    return users.map(toPublicUser);
+  static async findAll(): Promise<User[]> {
+    await syncAdmin();
+    return (await users.list()).map(toPublicUser);
   }
 
-  static findById(id: string): User | undefined {
-    const u = users.find((x) => x.id === id);
+  static async findById(id: string): Promise<User | undefined> {
+    await syncAdmin();
+    const u = await users.get(id);
     return u && toPublicUser(u);
   }
 
-  static findStoredByEmail(email: string): StoredUser | undefined {
-    return users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  static async findStoredByEmail(email: string): Promise<StoredUser | undefined> {
+    await syncAdmin();
+    return users.findBy("email", email);
   }
 
-  static create(data: RegisterDTO & { password: string }): User {
+  static async create(data: RegisterDTO & { password: string }): Promise<User> {
     const user: StoredUser = {
       id: `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name: data.name,
@@ -68,32 +76,26 @@ export class UserModel {
       createdAt: new Date().toISOString(),
       passwordHash: bcrypt.hashSync(data.password, 10),
     };
-    users.push(user);
-    saveCollection();
+    await users.insert(user);
     return toPublicUser(user);
   }
 
-  static setPassword(id: string, password: string): boolean {
-    const u = users.find((x) => x.id === id);
+  static async setPassword(id: string, password: string): Promise<boolean> {
+    const u = await users.get(id);
     if (!u) return false;
-    u.passwordHash = bcrypt.hashSync(password, 10);
-    saveCollection();
+    await users.replace({ ...u, passwordHash: bcrypt.hashSync(password, 10) });
     return true;
   }
 
-  static setRole(id: string, role: User["role"]): User | undefined {
-    const u = users.find((x) => x.id === id);
+  static async setRole(id: string, role: User["role"]): Promise<User | undefined> {
+    const u = await users.get(id);
     if (!u) return undefined;
-    u.role = role;
-    saveCollection();
-    return toPublicUser(u);
+    const next = { ...u, role };
+    await users.replace(next);
+    return toPublicUser(next);
   }
 
-  static remove(id: string): boolean {
-    const i = users.findIndex((x) => x.id === id);
-    if (i === -1) return false;
-    users.splice(i, 1);
-    saveCollection();
-    return true;
+  static remove(id: string): Promise<boolean> {
+    return users.remove(id);
   }
 }

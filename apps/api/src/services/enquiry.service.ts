@@ -12,8 +12,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const str = (v: unknown, max = 2000) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export class EnquiryService {
-  static createEnquiry(body: Partial<PropertyEnquiryDTO>): EnquiryRecord {
-    const property = PropertyModel.findById(String(body.propertyId ?? ""));
+  static async createEnquiry(body: Partial<PropertyEnquiryDTO>): Promise<EnquiryRecord> {
+    const property = await PropertyModel.findById(String(body.propertyId ?? ""));
     if (!property) {
       throw AppError.notFound("Property not found for this inspection request");
     }
@@ -35,7 +35,7 @@ export class EnquiryService {
     });
   }
 
-  static createContactMessage(body: Partial<ContactMessageDTO>): ContactMessageRecord {
+  static async createContactMessage(body: Partial<ContactMessageDTO>): Promise<ContactMessageRecord> {
     const firstName = str(body.firstName, 80);
     const email = str(body.email, 200);
     const message = str(body.message);

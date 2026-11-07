@@ -4,11 +4,11 @@ import { AppError } from "../utils/app-error.js";
 import { PaginationMeta } from "../utils/api-response.js";
 
 export class PropertyService {
-  static getProperties(filters: PropertyFilterParams): {
+  static async getProperties(filters: PropertyFilterParams): Promise<{
     properties: Property[];
     meta: PaginationMeta;
-  } {
-    let list = PropertyModel.findAll();
+  }> {
+    let list = await PropertyModel.findAll();
 
     // 1. Search text filter (title, neighborhood, description)
     if (filters.search) {
@@ -89,23 +89,23 @@ export class PropertyService {
     };
   }
 
-  static getFeaturedProperties(): Property[] {
+  static getFeaturedProperties(): Promise<Property[]> {
     return PropertyModel.findFeatured();
   }
 
-  static getPropertyBySlug(slug: string): Property {
-    const property = PropertyModel.findBySlug(slug);
+  static async getPropertyBySlug(slug: string): Promise<Property> {
+    const property = await PropertyModel.findBySlug(slug);
     if (!property) {
       throw AppError.notFound(`Property with slug '${slug}' not found`);
     }
     return property;
   }
 
-  static getSimilarProperties(slug: string, limit = 3): Property[] {
+  static getSimilarProperties(slug: string, limit = 3): Promise<Property[]> {
     return PropertyModel.findSimilar(slug, limit);
   }
 
-  private static build(input: PropertyInputDTO, base?: Property): Property {
+  private static async build(input: PropertyInputDTO, base?: Property): Promise<Property> {
     const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
     const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : NaN);
     const list = (v: unknown) =>
@@ -132,7 +132,7 @@ export class PropertyService {
         title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "property";
       slug = root;
       let i = 2;
-      while (PropertyModel.findBySlug(slug)) slug = `${root}-${i++}`;
+      while (await PropertyModel.findBySlug(slug)) slug = `${root}-${i++}`;
     }
 
     return {
@@ -180,17 +180,17 @@ export class PropertyService {
     };
   }
 
-  static createProperty(input: PropertyInputDTO): Property {
-    return PropertyModel.insert(this.build(input));
+  static async createProperty(input: PropertyInputDTO): Promise<Property> {
+    return PropertyModel.insert(await this.build(input));
   }
 
-  static updateProperty(id: string, input: PropertyInputDTO): Property {
-    const existing = PropertyModel.findById(id);
+  static async updateProperty(id: string, input: PropertyInputDTO): Promise<Property> {
+    const existing = await PropertyModel.findById(id);
     if (!existing) throw AppError.notFound("Property not found");
-    return PropertyModel.update(id, this.build(input, existing))!;
+    return (await PropertyModel.update(id, await this.build(input, existing)))!;
   }
 
-  static deleteProperty(id: string): void {
-    if (!PropertyModel.remove(id)) throw AppError.notFound("Property not found");
+  static async deleteProperty(id: string): Promise<void> {
+    if (!(await PropertyModel.remove(id))) throw AppError.notFound("Property not found");
   }
 }

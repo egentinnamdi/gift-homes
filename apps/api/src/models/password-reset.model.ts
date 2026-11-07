@@ -1,45 +1,38 @@
 import crypto from "node:crypto";
-import { loadCollection, saveCollection } from "../utils/store.js";
+import { collection } from "../utils/store.js";
 import { ENV } from "../config/env.js";
 
 interface ResetRecord {
+  id: string; // sha256 of the token
   userId: string;
-  tokenHash: string;
   expiresAt: number;
 }
 
-const resets = loadCollection<ResetRecord>("passwordResets", () => []);
+const resets = collection<ResetRecord>("password_resets", { order: "asc" });
 const hash = (t: string) => crypto.createHash("sha256").update(t).digest("hex");
 
 export class PasswordResetModel {
   /** Creates a single-use token (replacing any earlier one for the user). Returns the raw token. */
-  static issue(userId: string): string {
-    this.purgeExpired();
-    for (let i = resets.length - 1; i >= 0; i--) if (resets[i].userId === userId) resets.splice(i, 1);
+  static async issue(userId: string): Promise<string> {
+    const now = Date.now();
+    for (const r of await resets.list()) {
+      if (r.userId === userId || r.expiresAt < now) await resets.remove(r.id);
+    }
     const token = crypto.randomBytes(32).toString("hex");
-    resets.push({
+    await resets.insert({
+      id: hash(token),
       userId,
-      tokenHash: hash(token),
-      expiresAt: Date.now() + ENV.RESET_TOKEN_TTL_MINUTES * 60_000,
+      expiresAt: now + ENV.RESET_TOKEN_TTL_MINUTES * 60_000,
     });
-    saveCollection();
     return token;
   }
 
   /** Validates and consumes a token, returning the user id. */
-  static consume(token: string): string | undefined {
-    this.purgeExpired();
-    const h = hash(token);
-    const i = resets.findIndex((r) => r.tokenHash === h);
-    if (i === -1) return undefined;
-    const { userId } = resets[i];
-    resets.splice(i, 1);
-    saveCollection();
-    return userId;
-  }
-
-  private static purgeExpired() {
-    const now = Date.now();
-    for (let i = resets.length - 1; i >= 0; i--) if (resets[i].expiresAt < now) resets.splice(i, 1);
+  static async consume(token: string): Promise<string | undefined> {
+    const rec = await resets.get(hash(token));
+    if (!rec) return undefined;
+    // Removing first makes the token single-use even under concurrent attempts.
+    if (!(await resets.remove(rec.id))) return undefined;
+    return rec.expiresAt >= Date.now() ? rec.userId : undefined;
   }
 }

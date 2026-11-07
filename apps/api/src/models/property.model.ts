@@ -1,31 +1,35 @@
 import { Property } from "@gift-homes/shared";
-import { loadCollection, saveCollection } from "../utils/store.js";
+import { collection } from "../utils/store.js";
 import { SEED_PROPERTIES } from "./property.seed.js";
 
-const properties = loadCollection<Property>("properties", () => [...SEED_PROPERTIES]);
+const properties = collection<Property>("properties", {
+  order: "desc",
+  seed: () => [...SEED_PROPERTIES],
+});
 
 export class PropertyModel {
-  static findAll(): Property[] {
-    return [...properties];
+  static findAll(): Promise<Property[]> {
+    return properties.list();
   }
 
-  static findById(id: string): Property | undefined {
-    return properties.find((p) => p.id === id);
+  static findById(id: string): Promise<Property | undefined> {
+    return properties.get(id);
   }
 
-  static findBySlug(slug: string): Property | undefined {
-    return properties.find((p) => p.slug === slug);
+  static async findBySlug(slug: string): Promise<Property | undefined> {
+    return (await properties.list()).find((p) => p.slug === slug);
   }
 
-  static findFeatured(): Property[] {
-    return properties.filter((p) => p.featured);
+  static async findFeatured(): Promise<Property[]> {
+    return (await properties.list()).filter((p) => p.featured);
   }
 
-  static findSimilar(slug: string, limit = 3): Property[] {
-    const target = this.findBySlug(slug);
-    if (!target) return properties.slice(0, limit);
+  static async findSimilar(slug: string, limit = 3): Promise<Property[]> {
+    const all = await properties.list();
+    const target = all.find((p) => p.slug === slug);
+    if (!target) return all.slice(0, limit);
 
-    return properties
+    return all
       .filter(
         (p) =>
           p.slug !== slug &&
@@ -36,25 +40,18 @@ export class PropertyModel {
       .slice(0, limit);
   }
 
-  static insert(property: Property): Property {
-    properties.unshift(property);
-    saveCollection();
+  static async insert(property: Property): Promise<Property> {
+    await properties.insert(property);
     return property;
   }
 
-  static update(id: string, next: Property): Property | undefined {
-    const i = properties.findIndex((p) => p.id === id);
-    if (i === -1) return undefined;
-    properties[i] = next;
-    saveCollection();
+  static async update(id: string, next: Property): Promise<Property | undefined> {
+    if (!(await properties.get(id))) return undefined;
+    await properties.replace({ ...next, id });
     return next;
   }
 
-  static remove(id: string): boolean {
-    const i = properties.findIndex((p) => p.id === id);
-    if (i === -1) return false;
-    properties.splice(i, 1);
-    saveCollection();
-    return true;
+  static remove(id: string): Promise<boolean> {
+    return properties.remove(id);
   }
 }

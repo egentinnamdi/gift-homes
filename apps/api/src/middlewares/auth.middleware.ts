@@ -13,14 +13,14 @@ declare global {
   }
 }
 
-export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+export async function authenticate(req: Request, _res: Response, next: NextFunction): Promise<void> {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     return next(AppError.unauthorized("Authentication required"));
   }
   try {
     const payload = verifyToken(header.slice(7));
-    const user = UserModel.findById(payload.sub);
+    const user = await UserModel.findById(payload.sub);
     if (!user) return next(AppError.unauthorized("Account no longer exists"));
     req.user = user;
     next();

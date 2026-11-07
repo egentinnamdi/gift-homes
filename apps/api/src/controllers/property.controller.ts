@@ -23,7 +23,7 @@ export class PropertyController {
         limit,
       } = req.query;
 
-      const result = PropertyService.getProperties({
+      const result = await PropertyService.getProperties({
         neighborhood: neighborhood as string,
         type: type as string,
         listingType: listingType as any,
@@ -54,7 +54,7 @@ export class PropertyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const properties = PropertyService.getFeaturedProperties();
+      const properties = await PropertyService.getFeaturedProperties();
       sendSuccess(res, properties, "Featured properties fetched successfully");
     } catch (error) {
       next(error);
@@ -68,7 +68,7 @@ export class PropertyController {
   ): Promise<void> => {
     try {
       const { slug } = req.params;
-      const property = PropertyService.getPropertyBySlug(slug);
+      const property = await PropertyService.getPropertyBySlug(slug);
       sendSuccess(res, property, "Property details fetched successfully");
     } catch (error) {
       next(error);
@@ -83,7 +83,7 @@ export class PropertyController {
     try {
       const { slug } = req.params;
       const limit = req.query.limit ? Number(req.query.limit) : 3;
-      const properties = PropertyService.getSimilarProperties(slug, limit);
+      const properties = await PropertyService.getSimilarProperties(slug, limit);
       sendSuccess(res, properties, "Similar properties fetched successfully");
     } catch (error) {
       next(error);

@@ -6,89 +6,85 @@ import {
   ContactMessageRecord,
   ContactReply,
 } from "@gift-homes/shared";
-import { loadCollection, saveCollection } from "../utils/store.js";
+import { collection } from "../utils/store.js";
 
-const enquiries = loadCollection<EnquiryRecord>("enquiries", () => []);
-const messages = loadCollection<ContactMessageRecord>("contactMessages", () => []);
+const enquiries = collection<EnquiryRecord>("enquiries", { order: "desc" });
+const messages = collection<ContactMessageRecord>("contact_messages", { order: "desc" });
 
 const uid = (prefix: string) =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
 export class EnquiryModel {
-  static createEnquiry(dto: PropertyEnquiryDTO): EnquiryRecord {
+  static async createEnquiry(dto: PropertyEnquiryDTO): Promise<EnquiryRecord> {
     const record: EnquiryRecord = {
       ...dto,
       id: uid("enq"),
       status: "pending",
       createdAt: new Date().toISOString(),
     };
-    enquiries.unshift(record);
-    saveCollection();
+    await enquiries.insert(record);
     return record;
   }
 
-  static findAllEnquiries(): EnquiryRecord[] {
-    return [...enquiries];
+  static findAllEnquiries(): Promise<EnquiryRecord[]> {
+    return enquiries.list();
   }
 
-  static updateEnquiryStatus(id: string, status: EnquiryStatus): EnquiryRecord | undefined {
-    const e = enquiries.find((x) => x.id === id);
+  static async updateEnquiryStatus(id: string, status: EnquiryStatus): Promise<EnquiryRecord | undefined> {
+    const e = await enquiries.get(id);
     if (!e) return undefined;
-    e.status = status;
-    saveCollection();
-    return e;
+    const next = { ...e, status };
+    await enquiries.replace(next);
+    return next;
   }
 
-  static removeEnquiry(id: string): boolean {
-    const i = enquiries.findIndex((x) => x.id === id);
-    if (i === -1) return false;
-    enquiries.splice(i, 1);
-    saveCollection();
-    return true;
+  static removeEnquiry(id: string): Promise<boolean> {
+    return enquiries.remove(id);
   }
 
-  static createContactMessage(dto: ContactMessageDTO): ContactMessageRecord {
+  static async createContactMessage(dto: ContactMessageDTO): Promise<ContactMessageRecord> {
     const record: ContactMessageRecord = {
       ...dto,
       id: uid("msg"),
       read: false,
       createdAt: new Date().toISOString(),
     };
-    messages.unshift(record);
-    saveCollection();
+    await messages.insert(record);
     return record;
   }
 
-  static findAllContactMessages(): ContactMessageRecord[] {
-    return [...messages];
+  static findAllContactMessages(): Promise<ContactMessageRecord[]> {
+    return messages.list();
   }
 
-  static setMessageRead(id: string, read: boolean): ContactMessageRecord | undefined {
-    const m = messages.find((x) => x.id === id);
+  static async setMessageRead(id: string, read: boolean): Promise<ContactMessageRecord | undefined> {
+    const m = await messages.get(id);
     if (!m) return undefined;
-    m.read = read;
-    saveCollection();
-    return m;
+    const next = { ...m, read };
+    await messages.replace(next);
+    return next;
   }
 
-  static findMessage(id: string): ContactMessageRecord | undefined {
-    return messages.find((x) => x.id === id);
+  static findMessage(id: string): Promise<ContactMessageRecord | undefined> {
+    return messages.get(id);
   }
 
-  static addReply(id: string, reply: Omit<ContactReply, "id" | "sentAt">): ContactMessageRecord | undefined {
-    const m = messages.find((x) => x.id === id);
+  static async addReply(
+    id: string,
+    reply: Omit<ContactReply, "id" | "sentAt">
+  ): Promise<ContactMessageRecord | undefined> {
+    const m = await messages.get(id);
     if (!m) return undefined;
-    m.replies = [...(m.replies ?? []), { ...reply, id: uid("rep"), sentAt: new Date().toISOString() }];
-    m.read = true;
-    saveCollection();
-    return m;
+    const next: ContactMessageRecord = {
+      ...m,
+      read: true,
+      replies: [...(m.replies ?? []), { ...reply, id: uid("rep"), sentAt: new Date().toISOString() }],
+    };
+    await messages.replace(next);
+    return next;
   }
 
-  static removeMessage(id: string): boolean {
-    const i = messages.findIndex((x) => x.id === id);
-    if (i === -1) return false;
-    messages.splice(i, 1);
-    saveCollection();
-    return true;
+  static removeMessage(id: string): Promise<boolean> {
+    return messages.remove(id);
   }
 }

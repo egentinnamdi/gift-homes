@@ -15,15 +15,13 @@ import type { DashboardStats, EnquiryStatus, UserRole } from "@gift-homes/shared
 const router = Router();
 router.use(authenticate, requireAdmin);
 
-type Handler = (req: Request, res: Response) => void;
+type Handler = (req: Request, res: Response) => unknown;
 const wrap =
   (fn: Handler) =>
   (req: Request, res: Response, next: NextFunction): void => {
-    try {
-      fn(req, res);
-    } catch (e) {
-      next(e);
-    }
+    Promise.resolve()
+      .then(() => fn(req, res))
+      .catch(next);
   };
 
 const param = (req: Request, key: string) => String(req.params[key]);
@@ -31,16 +29,19 @@ const param = (req: Request, key: string) => String(req.params[key]);
 // ---- Dashboard ----
 router.get(
   "/stats",
-  wrap((_req, res) => {
-    const props = PropertyModel.findAll();
-    const enquiries = EnquiryModel.findAllEnquiries();
-    const messages = EnquiryModel.findAllContactMessages();
+  wrap(async (_req, res) => {
+    const [props, enquiries, messages, users] = await Promise.all([
+      PropertyModel.findAll(),
+      EnquiryModel.findAllEnquiries(),
+      EnquiryModel.findAllContactMessages(),
+      UserModel.findAll(),
+    ]);
     const stats: DashboardStats = {
       totalProperties: props.length,
       featuredProperties: props.filter((p) => p.featured).length,
       forSale: props.filter((p) => p.listingType === "sale").length,
       forRent: props.filter((p) => p.listingType === "rent").length,
-      totalUsers: UserModel.findAll().length,
+      totalUsers: users.length,
       pendingEnquiries: enquiries.filter((e) => e.status === "pending").length,
       totalEnquiries: enquiries.length,
       unreadMessages: messages.filter((m) => !m.read).length,
@@ -54,20 +55,20 @@ router.get(
 // ---- Properties ----
 router.get(
   "/properties",
-  wrap((_req, res) => sendSuccess(res, PropertyModel.findAll()))
+  wrap(async (_req, res) => sendSuccess(res, await PropertyModel.findAll()))
 );
 router.post(
   "/properties",
-  wrap((req, res) => sendSuccess(res, PropertyService.createProperty(req.body), "Property created", 201))
+  wrap(async (req, res) => sendSuccess(res, await PropertyService.createProperty(req.body), "Property created", 201))
 );
 router.put(
   "/properties/:id",
-  wrap((req, res) => sendSuccess(res, PropertyService.updateProperty(param(req, "id"), req.body), "Property updated"))
+  wrap(async (req, res) => sendSuccess(res, await PropertyService.updateProperty(param(req, "id"), req.body), "Property updated"))
 );
 router.delete(
   "/properties/:id",
-  wrap((req, res) => {
-    PropertyService.deleteProperty(param(req, "id"));
+  wrap(async (req, res) => {
+    await PropertyService.deleteProperty(param(req, "id"));
     sendSuccess(res, null, "Property deleted");
   })
 );
@@ -75,22 +76,22 @@ router.delete(
 // ---- Inspection enquiries ----
 router.get(
   "/enquiries",
-  wrap((_req, res) => sendSuccess(res, EnquiryModel.findAllEnquiries()))
+  wrap(async (_req, res) => sendSuccess(res, await EnquiryModel.findAllEnquiries()))
 );
 router.patch(
   "/enquiries/:id",
-  wrap((req, res) => {
+  wrap(async (req, res) => {
     const allowed: EnquiryStatus[] = ["pending", "confirmed", "completed", "cancelled"];
     if (!allowed.includes(req.body?.status)) throw AppError.badRequest("Invalid status");
-    const updated = EnquiryModel.updateEnquiryStatus(param(req, "id"), req.body.status);
+    const updated = await EnquiryModel.updateEnquiryStatus(param(req, "id"), req.body.status);
     if (!updated) throw AppError.notFound("Enquiry not found");
     sendSuccess(res, updated, "Enquiry updated");
   })
 );
 router.delete(
   "/enquiries/:id",
-  wrap((req, res) => {
-    if (!EnquiryModel.removeEnquiry(param(req, "id"))) throw AppError.notFound("Enquiry not found");
+  wrap(async (req, res) => {
+    if (!(await EnquiryModel.removeEnquiry(param(req, "id")))) throw AppError.notFound("Enquiry not found");
     sendSuccess(res, null, "Enquiry deleted");
   })
 );
@@ -98,19 +99,19 @@ router.delete(
 // ---- Contact messages ----
 router.get(
   "/messages",
-  wrap((_req, res) => sendSuccess(res, EnquiryModel.findAllContactMessages()))
+  wrap(async (_req, res) => sendSuccess(res, await EnquiryModel.findAllContactMessages()))
 );
 router.patch(
   "/messages/:id",
-  wrap((req, res) => {
-    const updated = EnquiryModel.setMessageRead(param(req, "id"), Boolean(req.body?.read));
+  wrap(async (req, res) => {
+    const updated = await EnquiryModel.setMessageRead(param(req, "id"), Boolean(req.body?.read));
     if (!updated) throw AppError.notFound("Message not found");
     sendSuccess(res, updated, "Message updated");
   })
 );
 router.post("/messages/:id/reply", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const message = EnquiryModel.findMessage(param(req, "id"));
+    const message = await EnquiryModel.findMessage(param(req, "id"));
     if (!message) throw AppError.notFound("Message not found");
 
     const body = typeof req.body?.body === "string" ? req.body.body.trim() : "";
@@ -139,7 +140,7 @@ router.post("/messages/:id/reply", async (req: Request, res: Response, next: Nex
       throw new AppError("The email could not be sent. Check the SMTP settings and try again.", 502);
     }
 
-    const updated = EnquiryModel.addReply(message.id, {
+    const updated = await EnquiryModel.addReply(message.id, {
       subject,
       body,
       sentBy: req.user!.email,
@@ -151,8 +152,8 @@ router.post("/messages/:id/reply", async (req: Request, res: Response, next: Nex
 });
 router.delete(
   "/messages/:id",
-  wrap((req, res) => {
-    if (!EnquiryModel.removeMessage(param(req, "id"))) throw AppError.notFound("Message not found");
+  wrap(async (req, res) => {
+    if (!(await EnquiryModel.removeMessage(param(req, "id")))) throw AppError.notFound("Message not found");
     sendSuccess(res, null, "Message deleted");
   })
 );
@@ -160,24 +161,24 @@ router.delete(
 // ---- Users ----
 router.get(
   "/users",
-  wrap((_req, res) => sendSuccess(res, UserModel.findAll()))
+  wrap(async (_req, res) => sendSuccess(res, await UserModel.findAll()))
 );
 router.patch(
   "/users/:id",
-  wrap((req, res) => {
+  wrap(async (req, res) => {
     const roles: UserRole[] = ["buyer", "owner", "diaspora", "admin"];
     if (!roles.includes(req.body?.role)) throw AppError.badRequest("Invalid role");
     if (param(req, "id") === req.user!.id) throw AppError.badRequest("You cannot change your own role");
-    const updated = UserModel.setRole(param(req, "id"), req.body.role);
+    const updated = await UserModel.setRole(param(req, "id"), req.body.role);
     if (!updated) throw AppError.notFound("User not found");
     sendSuccess(res, updated, "User updated");
   })
 );
 router.delete(
   "/users/:id",
-  wrap((req, res) => {
+  wrap(async (req, res) => {
     if (param(req, "id") === req.user!.id) throw AppError.badRequest("You cannot delete your own account");
-    if (!UserModel.remove(param(req, "id"))) throw AppError.notFound("User not found");
+    if (!(await UserModel.remove(param(req, "id")))) throw AppError.notFound("User not found");
     sendSuccess(res, null, "User deleted");
   })
 );

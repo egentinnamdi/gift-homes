@@ -3,20 +3,20 @@ import { AuthService } from "../services/auth.service.js";
 import { sendSuccess } from "../utils/api-response.js";
 
 export class AuthController {
-  static login = (req: Request, res: Response, next: NextFunction): void => {
+  static login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, password } = req.body;
-      sendSuccess(res, AuthService.login({ email, password }), "Logged in successfully");
+      sendSuccess(res, await AuthService.login({ email, password }), "Logged in successfully");
     } catch (e) {
       next(e);
     }
   };
 
-  static register = (req: Request, res: Response, next: NextFunction): void => {
+  static register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { name, email, password, phone, role } = req.body;
       const r = role === "owner" || role === "diaspora" ? role : "buyer";
-      sendSuccess(res, AuthService.register({ name, email, password, phone, role: r }), "Registered successfully", 201);
+      sendSuccess(res, await AuthService.register({ name, email, password, phone, role: r }), "Registered successfully", 201);
     } catch (e) {
       next(e);
     }
@@ -31,9 +31,9 @@ export class AuthController {
     }
   };
 
-  static resetPassword = (req: Request, res: Response, next: NextFunction): void => {
+  static resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      AuthService.resetPassword(String(req.body?.token ?? ""), String(req.body?.password ?? ""));
+      await AuthService.resetPassword(String(req.body?.token ?? ""), String(req.body?.password ?? ""));
       sendSuccess(res, null, "Password updated. You can now sign in.");
     } catch (e) {
       next(e);

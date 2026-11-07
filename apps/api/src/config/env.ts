@@ -5,9 +5,7 @@ dotenv.config();
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProd = NODE_ENV === "production";
 
-const onVercel = Boolean(process.env.VERCEL);
-// Vercel's filesystem is read-only except /tmp (which is ephemeral). See README / deployment notes.
-const defaultDataFile = onVercel ? "/tmp/gifthomes-db.json" : "data/db.json";
+const defaultDataFile = "data/db.json";
 const publicSite =
   process.env.CLIENT_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
@@ -28,6 +26,8 @@ export const ENV = {
   API_PREFIX: process.env.API_PREFIX || "/api/v1",
   JWT_SECRET: process.env.JWT_SECRET || DEV_JWT,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
+  /** Postgres connection string (Neon). When unset, a local JSON file is used (development only). */
+  DATABASE_URL: process.env.DATABASE_URL || process.env.POSTGRES_URL || "",
   DATA_FILE: process.env.DATA_FILE || defaultDataFile,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || "giftedproperties2@gmail.com",
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD,
@@ -51,6 +51,7 @@ if (isProd) {
   if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
     problems.push("ADMIN_PASSWORD must be set to something other than the default");
   }
+  if (!ENV.DATABASE_URL) problems.push("DATABASE_URL must be set (Postgres/Neon) so data persists");
   if (!ENV.SMTP_HOST) problems.push("SMTP_HOST (and credentials) must be set so emails can be sent");
   if (ENV.CLIENT_ORIGINS.some((o) => o.startsWith("http://localhost"))) {
     problems.push("CLIENT_URL must be your public website URL, not localhost");
