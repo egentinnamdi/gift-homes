@@ -25,6 +25,6 @@ export const ENUGU_OFFICE_DETAILS = {
   address: "Plot 14 Presidential Road, Independence Layout, Enugu, Nigeria",
   phone: "+234 915 902 7226",
   mobile: "+234 915 902 7226",
-  email: "info@gifthomes.ng",
+  email: "giftedproperties2@gmail.com",
   operatingHours: "Monday - Friday: 8:00 AM - 5:00 PM | Saturday: 10:00 AM - 2:00 PM",
 };

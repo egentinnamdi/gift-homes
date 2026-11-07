@@ -18,7 +18,7 @@ export function ContactCards() {
       title: "Email Inquiries",
       description: "Direct your property queries, diaspora requests, and listing details to our inbox.",
       primary: ENUGU_OFFICE_DETAILS.email,
-      secondary: "enquiries@gifthomes.ng",
+      secondary: "giftedproperties2@gmail.com",
       badge: "Fast Response",
       icon: Mail,
       action: (
