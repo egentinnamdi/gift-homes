@@ -1,9 +1,9 @@
-import { createApp } from "./app.js";
+import { createApp } from "./create-app.js";
 import { ENV } from "./config/env.js";
 import { verifyMailer } from "./utils/mailer.js";
 
 const app = createApp();
-void verifyMailer();
+if (!process.env.VERCEL) void verifyMailer();
 
 // On Vercel the platform invokes the exported app per request; only listen when self-hosted/local.
 if (!process.env.VERCEL) {

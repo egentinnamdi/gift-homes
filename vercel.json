@@ -4,6 +4,7 @@
     "api": {
       "root": "apps/api",
       "framework": "express",
+      "entrypoint": "src/server.ts",
       "buildCommand": "pnpm --filter @gift-homes/shared build"
     },
     "web": {
