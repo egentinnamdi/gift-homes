@@ -65,4 +65,14 @@ export class AuthService {
       throw AppError.badRequest("This reset link is invalid or has expired");
     }
   }
+
+  static async changePassword(userId: string, current: string, next: string): Promise<void> {
+    if (!next || next.length < 8) throw AppError.badRequest("New password must be at least 8 characters");
+    const user = await UserModel.findById(userId);
+    const stored = user && (await UserModel.findStoredByEmail(user.email));
+    if (!stored || !bcrypt.compareSync(current ?? "", stored.passwordHash)) {
+      throw AppError.unauthorized("Current password is incorrect");
+    }
+    await UserModel.setPassword(stored.id, next);
+  }
 }

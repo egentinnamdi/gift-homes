@@ -40,6 +40,19 @@ export class AuthController {
     }
   };
 
+  static changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await AuthService.changePassword(
+        req.user!.id,
+        String(req.body?.currentPassword ?? ""),
+        String(req.body?.newPassword ?? "")
+      );
+      sendSuccess(res, null, "Password changed");
+    } catch (e) {
+      next(e);
+    }
+  };
+
   static me = (req: Request, res: Response): void => {
     sendSuccess(res, req.user, "Current user");
   };
