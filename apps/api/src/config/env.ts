@@ -35,7 +35,7 @@ export const ENV = {
   SMTP_PORT: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
   SMTP_USER: process.env.SMTP_USER || "",
   SMTP_PASS: process.env.SMTP_PASS || "",
-  MAIL_FROM: process.env.MAIL_FROM || "GiftHomes <no-reply@gifthomes.ng>",
+  MAIL_FROM: process.env.MAIL_FROM || "GiftHomes <giftedproperties2@gmail.com>",
   /** Where customer replies to admin emails land. Defaults to the SMTP user / sender. */
   MAIL_REPLY_TO: process.env.MAIL_REPLY_TO || "",
   /** Set to the number of reverse proxies in front of the API (e.g. 1 on most PaaS hosts). */

@@ -16,7 +16,7 @@ export function ContactFaq() {
     {
       question: "How do I schedule an in-person or diaspora virtual inspection?",
       answer:
-        "You can schedule an inspection by submitting an inquiry via our contact form, emailing info@gifthomes.ng, or calling our desk directly. For diaspora and interstate clients, we conduct interactive live video walkthroughs via WhatsApp or Zoom, detailing every room, boundary wall, access road, and utility connection in real time.",
+        "You can schedule an inspection by submitting an inquiry via our contact form, emailing giftedproperties2@gmail.com, or calling our desk directly. For diaspora and interstate clients, we conduct interactive live video walkthroughs via WhatsApp or Zoom, detailing every room, boundary wall, access road, and utility connection in real time.",
       category: "Inspections",
     },
     {

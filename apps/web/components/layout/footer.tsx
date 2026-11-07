@@ -157,7 +157,7 @@ export function Footer() {
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Mail className="size-4 shrink-0 text-[#703BF7]" />
-                  <span>info@gifthomes.ng</span>
+                  <span>giftedproperties2@gmail.com</span>
                 </li>
               </ul>
             </div>

@@ -171,7 +171,7 @@ export class PropertyService {
         name: s(input.agent?.name) || "GiftHomes Team",
         role: s(input.agent?.role) || "Real Estate Consultant",
         phone: s(input.agent?.phone) || "+234 915 902 7226",
-        email: s(input.agent?.email) || "info@gifthomes.ng",
+        email: s(input.agent?.email) || "giftedproperties2@gmail.com",
         avatar:
           s(input.agent?.avatar) ||
           "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
